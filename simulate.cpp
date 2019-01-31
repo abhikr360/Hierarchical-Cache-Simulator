@@ -1,93 +1,67 @@
 #include "constants.h"
-
-// #include "LLC.h"
-
 #include "L2Cache.h"
-
 #include "L1Cache.h"
 
-// #ifndef CE_Belady_included
-// #define CE_Belady_included
-// #include "CE_Belady.h"
-// #endif
 
-
-
-// map<ull, CE_Belady*> block_data;
-
+int NUM_CORES = 8;
 int main(int argc, char const *argv[])
 {
-	/*
-	Setup your cache Hierarchy
-	*/
-
-	// L1Cache *l1 = new L1Cache(3,4, LRU);
-
-	// LLC* llc = new LLC(1,2);
-
-	// L2Cache *l2= new L2Cache(1,2);
 
 
+	const string file_path(argv[1]);
+	ifstream input_file(file_path);
+	/******************************
+		Simulation
+	******************************/
+	int associativity_l1 = 8;
+	int associativity_l2 = 8;
+	int num_sets_l1      = 64;
+	int num_sets_l2      = 256;
+
+
+	unsigned int tid;
+	ull block_addr;
+	int category;
+
+	L1Cache** l1data = new L1Cache*[NUM_CORES];
+	L1Cache** l1instruction = new L1Cache*[NUM_CORES];
+	L2Cache** l2unified = new L2Cache*[NUM_CORES];
+
+	for(int i=0;i<NUM_CORES;++i){
+		l1data[i] = new L1Cache(num_sets_l1, associativity_l1, 1, i, LRU);
+		l1instruction[i] = new L1Cache(num_sets_l1, associativity_l1, INSTRUCTION, i, LRU);
+
+		l2unified[i] = new L2Cache(num_sets_l2, associativity_l2, 1, i, LRU);
+
+		l1data[i]->set_child(l2unified[i]);
+		l1instruction[i]->set_child(l2unified[i]);
+		l2unified[i]->set_parent(l1data[i], l1instruction[i]);
+	}
+
+
+	// L2Cache* l2 = new L2Cache(2,3,LRU);
 	// l1->set_child(l2);
 	// l2->set_parent(l1);
 
-	
-	// l2->set_child(llc);
-	// llc->set_parent(l2);
-
-
-	/*
-	Preproceesing needed for simulation
-	*/
-
-
-
-	/*
-	string folder = "../output_trace/test/";
-	string file_path = folder + "addrtrace_bodytrack.out" ; //to_string(argv[1]);
-
-	FILE *fp_in;
-
-	fp_in = fopen(file_path.c_str(), "r");
-	assert(fp_in != NULL);
-
-	unsigned int tid;
-	ull block_addr;
-	ull count=0;
-	map<ull, CE_Belady*>::iterator ir;
-	while(!feof(fp_in)){
-		fscanf(fp_in, "%d %llu", &tid, &block_addr);
-		ir = block_data.find(block_addr);
-		if(ir ==block_data.end()){
-			block_data.insert(mp(block_addr, new CE_Belady(block_addr, tid, count)));
+	while(input_file >> tid >> block_addr >> category){
+		tid = tid%NUM_CORES;
+		if(category==INSTRUCTION){
+			l1instruction[tid]->find_in_cache(block_addr, category);
 		}
-
 		else{
-			if(ir->second->cur_owner != tid){
-				ir->second->add_sharer(tid);
-			}
-			ir->second->access_list.pb(mp(count, tid));
+			l1data[tid]->find_in_cache(block_addr, category);
 		}
-      count++;
    }
-   fclose(fp_in);
-   printf("Done reading file!\n");
-*/
-	ifstream input_file("temp_trace.out");
+   input_file.close();
 
-	unsigned int tid;
-	ull block_addr;
-
-	L1Cache* l1 = new L1Cache(4,3,LRU);
-	L2Cache* l2 = new L2Cache(2,3,LRU);
-	l1->set_child(l2);
-	l2->set_parent(l1);
-
-	while(input_file >> tid >> block_addr){
-		// cout << tid << " " << block_addr << "a" << endl;
-		l1->find_in_cache(block_addr);
-   }
-   // fclose(fp_in);
+   for(int i=0;i<NUM_CORES;++i){
+		delete l1data[i];
+		delete l1instruction[i];
+		delete l2unified[i];
+	}
+	delete l1data;
+	delete l1instruction;
+	delete l2unified;
 
 	return 0;
 }

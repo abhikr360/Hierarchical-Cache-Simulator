@@ -30,6 +30,19 @@ using namespace std;
 #endif
 
 
+#ifndef LOAD
+#define LOAD 0
+#endif
+
+#ifndef STORE
+#define STORE 1
+#endif
+
+#ifndef INSTRUCTION
+#define INSTRUCTION 2
+#endif
+
+
 
 typedef unsigned long long ull;
 typedef long long ll;

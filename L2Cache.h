@@ -1,8 +1,6 @@
-#include "LLC.h"
 
 #ifndef L2Cache_included
 #define L2Cache_included
-
 
 
 class L1Cache;
@@ -12,24 +10,24 @@ class L2Cache
 public:
 	int associativity;
 	int num_sets;
+	int type;
+	int id;
 	ull clock;
-	L1Cache* parent;
-	LLC* child;
+	L1Cache* parentData;
+	L1Cache* parentInstruction;
+
 	vector< vector<ll> > data;
 	replacement_policy policy;
-	unordered_map<ull, long long> last_use; // WIll be useful only if the policy is LRU
+	unordered_map<ull, long long> last_use; // Will be useful only if the policy is LRU
 
 
 
-	L2Cache(int num_sets, int associativity, replacement_policy policy);
+	L2Cache(int num_sets, int associativity, int type, int id, replacement_policy policy);
 	~L2Cache();
 
-	void set_parent(L1Cache* parent);
-	void set_child(LLC* child);
 
-	void find_in_cache(ull addr);
-	void invalidate(ull addr);
-
+	void find_in_cache(ull addr, int category);
+	void set_parent(L1Cache* parentData, L1Cache* parentInstruction);
 };
 
 #endif

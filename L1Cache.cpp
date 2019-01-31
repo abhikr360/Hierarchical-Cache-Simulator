@@ -3,9 +3,11 @@
 #include "L2Cache.h"
 
 
-L1Cache::L1Cache(int num_sets, int associativity, replacement_policy policy){
+L1Cache::L1Cache(int num_sets, int associativity, int type, int id, replacement_policy policy){
 	this->associativity = associativity;
 	this->num_sets = num_sets;
+	this->type = type;
+	this->id = id;
 	this->clock=1;
 	this->policy = policy;
 	this->data.resize(num_sets, vector<ll>(associativity, INVALID));
@@ -17,7 +19,7 @@ L1Cache::set_child(L2Cache* child){
 }
 
 void
-L1Cache::find_in_cache(ull addr){
+L1Cache::find_in_cache(ull addr, int category){
 	this->clock++;
 	ull idx = addr%num_sets;
 	for(int j=0;j<this->associativity;++j){
@@ -28,14 +30,14 @@ L1Cache::find_in_cache(ull addr){
 					break;
 				case LRU:
 					this->last_use[addr]=this->clock;
-					cout << "L1 Hit " << addr << endl;
+					// cout << "L1 Hit " << addr << endl;
 					break;
 			}
 			return;
 		}
 	}
 	//Miss
-	this->child->find_in_cache(addr);
+	this->child->find_in_cache(addr, category);
 
 	// If cache has space left
 	for(int j=0;j<this->associativity;++j){
@@ -47,7 +49,7 @@ L1Cache::find_in_cache(ull addr){
 					break;
 				case LRU:
 					this->last_use[addr]=this->clock;
-					cout << "L1 Miss " << addr << endl;
+					// cout << "L1 Miss " << addr << endl;
 					break;
 			}
 			return;
@@ -71,7 +73,7 @@ L1Cache::find_in_cache(ull addr){
 			}
 			this->last_use.erase(this->data[idx][min_way]);
 			this->last_use[addr]=clock;
-			cout << "L1 Miss " << addr << " Replacing " << this->data[idx][min_way] << endl;
+			// cout << "L1 Miss " << addr << " Replacing " << this->data[idx][min_way] << endl;
 			this->data[idx][min_way]=addr;
 			break;
 	}
@@ -80,7 +82,7 @@ L1Cache::find_in_cache(ull addr){
 void
 L1Cache::invalidate(ull addr){
 	ull idx = addr%num_sets;
-	cout << "L1 invalidate " << addr << endl;
+	// cout << "L1 invalidate " << addr << endl;
 	for(int j=0;j<this->associativity;++j){
 		if(this->data[idx][j]==addr){
 			last_use.erase(addr);
@@ -88,4 +90,8 @@ L1Cache::invalidate(ull addr){
 			return;
 		}
 	}
+}
+
+L1Cache::~L1Cache(){
+	
 }
