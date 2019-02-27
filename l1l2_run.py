@@ -1,11 +1,16 @@
 import os
+import argparse
 
+parser = argparse.ArgumentParser(description='driver script for run.py')
+parser.add_argument('--size',  type=str, default='test',
+                    help='size of the benchmark suite')
+args = parser.parse_args()
 
 progs = [
 	# 'blackscholes',
-	'bodytrack',
+	# 'bodytrack',
 	'canneal',
-	'facesim',
+	# 'facesim',
 	'ferret',
 	'fluidanimate',
 	'freqmine',
@@ -20,7 +25,7 @@ progs = [
 # progs = [ 'canneal', 'vips']
 
 
-trace_folder = '../output_trace/test/'
+trace_folder = '../output_trace/{}/'.format(args.size)
 
 # compile
 os.system("g++ -std=c++11 simulate.cpp L1Cache.cpp L2Cache.cpp -o simulate")

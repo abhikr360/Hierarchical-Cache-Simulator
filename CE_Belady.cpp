@@ -1,11 +1,14 @@
 #include "CE_Belady.h"
 
+extern int NUM_CORES;
+
 CE_Belady::CE_Belady(){
 
 }
 CE_Belady::~CE_Belady(){
 	
 }
+
 
 
 void
@@ -30,5 +33,6 @@ CE_Belady::add_sharer(int thread_id, int cur_use){
 			return;
 		}
 	}
-	this->sharers.pb(mp(cur_owner, cur_use));
+	this->sharers.pb(mp(thread_id, cur_use));
+	assert(sharers.size()<=NUM_CORES);
 }

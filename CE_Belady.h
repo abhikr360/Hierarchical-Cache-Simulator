@@ -3,8 +3,8 @@
 #ifndef CE_BELADY_included
 #define CE_BELADY_included
 
-extern map<ull, vector<ull> >  block_access_list;
-extern map<ull, ull >          block_access_idx;
+extern unordered_map<ull, vector<ull> >  block_access_list;
+extern unordered_map<ull, ull >          block_access_idx;
 
 class CE_Belady
 {

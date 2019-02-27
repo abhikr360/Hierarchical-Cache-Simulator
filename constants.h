@@ -10,8 +10,7 @@
 #include <algorithm>
 #include <climits>
 #include <unordered_map>
-
-
+#include <ctime>
 #include <cassert>
 #include <cstdio>
 
@@ -42,7 +41,9 @@ using namespace std;
 #define INSTRUCTION 2
 #endif
 
-
+#ifndef MAX_BUF_SIZE
+#define MAX_BUF_SIZE 100000
+#endif
 
 typedef unsigned long long ull;
 typedef long long ll;
