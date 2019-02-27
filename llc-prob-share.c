@@ -12,7 +12,7 @@
 #define LLC_ASSOC 16
 
 
-// #define LOG_PAGE_SIZE 20
+// #define LOG_PAGE_SIZE 17
 // #define n_counters 22
 // #define D 10000
 
@@ -32,7 +32,10 @@ typedef struct {
    ull tag;
    ull lru;
    ull hit_count;
+   int owner;
+   int shared;
    countTableEntry_s* countTableEntry;
+   countTableEntry_s* countTableEntryShare;
 } CacheTag;
 
 
@@ -74,7 +77,7 @@ int main (int argc, char **argv)
    const int D = atoi(argv[4]);
    assert(n_counters<50);
    printf("LOG_PAGE_SIZE: %d n_counters %d D %d\n", LOG_PAGE_SIZE, n_counters, D);
-   
+
 
    int  i, j, LLCsetid, maxindex, tid;
    ull block_addr, max, *uniqueId;
@@ -83,7 +86,7 @@ int main (int argc, char **argv)
    int llcway;
    int hash_index;
    CacheTag** LLCcache;
-   countTableEntry_s* ct, *ctptr, *prevctptr;
+   countTableEntry_s* ct, *ctptr, *prevctptr, *ctshare, *ctptr_share;
    int block_type;
    ull pagenum;
    ull temp_hit_count;
@@ -96,6 +99,7 @@ int main (int argc, char **argv)
 
    LLCcache = (CacheTag**)create_cache(LLC_NUMSET, LLC_ASSOC);
    ct = (countTableEntry_s*)create_count_table(SIZE);
+   ctshare = (countTableEntry_s*)create_count_table(SIZE);
    uniqueId = (unsigned long long*)malloc(LLC_NUMSET*sizeof(unsigned long long));
    assert(uniqueId != NULL);
    for (i=0; i<LLC_NUMSET; i++) {
@@ -122,13 +126,36 @@ int main (int argc, char **argv)
       for (llcway=0; llcway<LLC_ASSOC; llcway++) {
          if (LLCcache[LLCsetid][llcway].tag == block_addr) {
             /* LLC cache hit; Update access list */
+            ctptr = LLCcache[LLCsetid][llcway].countTableEntry;
+            assert(ctptr != NULL);
+            ctptr_share = LLCcache[LLCsetid][llcway].countTableEntryShare;
+            assert(ctptr_share != NULL);
 
             LLCcache[LLCsetid][llcway].hit_count++;
             temp_hit_count = LLCcache[LLCsetid][llcway].hit_count;
-            ctptr = LLCcache[LLCsetid][llcway].countTableEntry;
-            assert(ctptr != NULL);
-            if(temp_hit_count<n_counters)
-               ctptr->count[temp_hit_count]++;
+
+            if(tid != LLCcache[LLCsetid][llcway].owner && LLCcache[LLCsetid][llcway].shared==0){
+               LLCcache[LLCsetid][llcway].shared=1;
+               LLCcache[LLCsetid][llcway].owner=tid;
+               j = temp_hit_count < n_counters ? temp_hit_count -1 : n_counters-1;
+               for(i=0;i<=j;++i){
+                  ctptr->count[i]--;
+               }
+               j = temp_hit_count < n_counters-1 ? temp_hit_count : n_counters-1;
+
+               for(i=0;i<=j;++i){
+                  ctptr_share->count[i]++;
+               }
+            }
+            else if(LLCcache[LLCsetid][llcway].shared==0){
+               if(temp_hit_count<n_counters)
+                  ctptr->count[temp_hit_count]++;
+            }
+            else{
+               if(temp_hit_count<n_counters)
+                  ctptr_share->count[temp_hit_count]++;
+            }
+
 
             LLCcache[LLCsetid][llcway].lru = uniqueId[LLCsetid];
             break;
@@ -139,11 +166,9 @@ int main (int argc, char **argv)
          num_misses++;
 
          /* find victim block and replace it with current block */
-        
          /* check if there is invalid way */
          for (llcway=0; llcway<LLC_ASSOC; llcway++) {
             if (LLCcache[LLCsetid][llcway].tag == INVALID_TAG){ 
-               
                break;
             }
          }
@@ -152,17 +177,22 @@ int main (int argc, char **argv)
             /* no invalid way*/
 
 
-
             if(uniqueId[LLCsetid]>D){
             /* Probabilistic Policy*/
                sum=0;
                for (llcway=0; llcway<LLC_ASSOC; llcway++) {
-                  ctptr = LLCcache[LLCsetid][llcway].countTableEntry;
+                  if(LLCcache[LLCsetid][llcway].shared==0){
+                     ctptr = LLCcache[LLCsetid][llcway].countTableEntry;
+                  }
+                  else{
+                     ctptr = LLCcache[LLCsetid][llcway].countTableEntryShare;
+                  }
                   assert(ctptr != NULL);
                   temp_hit_count= LLCcache[LLCsetid][llcway].hit_count;
                   temp_hit_count= (temp_hit_count > n_counters-2 ? n_counters-2 : temp_hit_count); 
 
                   prob[llcway]= 1-(ctptr->count[temp_hit_count+1]*1.0)/ctptr->count[temp_hit_count];
+                  // printf("%lld %lld %lld %lf\n", temp_hit_count, ctptr->count[temp_hit_count+1], ctptr->count[temp_hit_count], prob[llcway]);
                   if(prob[llcway]-0 < EPSILON){
                      prob[llcway] += EPSILON;
                   }
@@ -172,7 +202,6 @@ int main (int argc, char **argv)
 
                   sum+=prob[llcway];
                }
-
                for(llcway=0;llcway<LLC_ASSOC;++llcway){// Normalizing the probability values
                   prob[llcway] = prob[llcway]/sum;
                }
@@ -211,6 +240,7 @@ int main (int argc, char **argv)
          
 
          ctptr = &ct[hash_index];
+
          if(ctptr->pagenum == INVALID_TAG){ // No page at this idx
             ctptr->pagenum = pagenum;
             ctptr->next=NULL;
@@ -237,8 +267,41 @@ int main (int argc, char **argv)
                }
             }
          }
+         // Same procedure for shared counters
+         ctptr_share = &ctshare[hash_index];
+
+         if(ctptr_share->pagenum == INVALID_TAG){ // No page at this idx
+            ctptr_share->pagenum = pagenum;
+            ctptr_share->next=NULL;
+            for(j=0;j<n_counters;++j){
+               ctptr_share->count[j]=0;
+            }
+         }
+         else{  // A page at this idx already exists
+            prevctptr = NULL;
+            while(ctptr_share != NULL){
+               if(ctptr_share->pagenum == pagenum ){
+                  break;
+               }
+               prevctptr = ctptr_share;
+               ctptr_share = ctptr_share->next;
+            }
+            if(ctptr_share == NULL){// This is the first block for this page
+               prevctptr->next = (countTableEntry_s*)malloc(sizeof(countTableEntry_s));
+               ctptr_share = prevctptr->next;
+               ctptr_share->pagenum=pagenum;
+               ctptr_share->next=NULL;
+               for(j=0;j<n_counters;++j){
+                  ctptr_share->count[j]=0;
+               }
+            }
+         }
          LLCcache[LLCsetid][llcway].countTableEntry = ctptr;
+         LLCcache[LLCsetid][llcway].countTableEntryShare = ctptr_share;
+         LLCcache[LLCsetid][llcway].shared=0;
          LLCcache[LLCsetid][llcway].lru = uniqueId[LLCsetid];
+         LLCcache[LLCsetid][llcway].owner = tid;
+
          ctptr->count[0]++;
 
       }
@@ -268,18 +331,42 @@ int main (int argc, char **argv)
             temp_hit_count++;
          }
       }
-      
       avg = tot;
       avg = (1.0*tot)/temp_hit_count;
       sum1=0;
       for(j=0;j<SIZE;++j){
          ctptr = &ct[j];
-         while(ctptr != NULL){
+         while(ctptr != NULL && ctptr->pagenum != INVALID_TAG){
             sum1 += ((double)ctptr->count[i] - avg)*((double)ctptr->count[i] - avg);
             ctptr=ctptr->next;
          }
       }
-      
+
+      printf("Avg count: %lf StdDev: %lf\n", avg, sum1/(double)temp_hit_count);
+   }
+   printf("Sharing Counts\n");
+   for(i=0;i<n_counters;++i){
+      tot=0;
+      temp_hit_count=0;
+      for(j=0;j<SIZE;++j){
+         ctptr = &ctshare[j];
+         while(ctptr != NULL && ctptr->pagenum != INVALID_TAG){
+            tot += ctptr->count[i];
+            ctptr=ctptr->next;
+            temp_hit_count++;
+         }
+      }
+      avg = tot;
+      avg = (1.0*tot)/temp_hit_count;
+      sum1=0;
+      for(j=0;j<SIZE;++j){
+         ctptr = &ctshare[j];
+         while(ctptr != NULL && ctptr->pagenum != INVALID_TAG){
+            sum1 += ((double)ctptr->count[i] - avg)*((double)ctptr->count[i] - avg);
+            ctptr=ctptr->next;
+         }
+      }
+
       printf("Avg count: %lf StdDev: %lf\n", avg, sum1/(double)temp_hit_count);
    }
    printf("Num pages: %lld\n", temp_hit_count);
@@ -293,6 +380,6 @@ int main (int argc, char **argv)
       sum1 += ((double)uniqueId[i] - avg)*((double)uniqueId[i]-avg);
    }
    printf("Avg access: %lf StdDev: %lf\n", avg, sum1/(double)LLC_NUMSET);
-   printf("-------------------------------------------------------------------\n");
+   printf("-----------------------------------------------------------------\n");
    return 0;
 }
