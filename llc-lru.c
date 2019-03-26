@@ -16,7 +16,7 @@ typedef struct {
 
 #define LLC_NUMSET 8192 /* 8 MB LLC: 8 X 1024 */
 #define LLC_ASSOC 16
-
+typedef unsigned long long ull;
 
 
 CacheTag** create_cache (int numset, int assoc) {
@@ -46,7 +46,7 @@ int main (int argc, char **argv)
    int hash_index;
    CacheTag** LLCcache;
    int block_type;
-
+   ull pc;
 
    if (argc != 2) {
       printf("Need two arguments: input file. Aborting...\n");
@@ -72,7 +72,7 @@ int main (int argc, char **argv)
    assert(fp_in != NULL);
 
    while (!feof(fp_in)) {
-      fscanf(fp_in, "%d %llu %d", &tid, &block_addr, &block_type);
+      fscanf(fp_in, "%llu %d %llu %d", &pc, &tid, &block_addr, &block_type);
 
       hash_index = block_addr % SIZE;
       LLCsetid = block_addr % LLC_NUMSET;

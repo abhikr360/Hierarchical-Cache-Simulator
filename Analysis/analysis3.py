@@ -17,8 +17,11 @@ data_file = data_folder + 'LLCtrace_' + args.p + '_reusefile.out'
 
 data = pd.read_csv(data_file, sep=' ')
 
-
-n_sharers = int(data['n_sharers'].max())
+try:
+	n_sharers = int(data['n_sharers'].max())
+except:
+	n_sharers = 1
+	print("analysis3", args.size, args.p)
 
 rec0=[]
 rec1=[]
@@ -60,6 +63,6 @@ plt.xlabel('n_sharers')
 plt.ylabel('avg. reuse distance')
 plt.title('avg. reuse distance for n_sharers')
 plt.xticks(index + bar_width, xticks)
-plt.legend()
-plt.savefig( plot_folder + 'reuse_distance_{}_{}_{}.png'.format(args.p, args.size, args.property))
+plt.legend(loc = 'upper right')
+plt.savefig( plot_folder + 'reuse_distance_{}_{}.png'.format(args.p, args.property))
 plt.tight_layout()

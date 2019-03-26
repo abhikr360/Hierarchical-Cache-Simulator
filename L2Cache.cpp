@@ -22,7 +22,7 @@ L2Cache::set_parent(L1Cache* parentData, L1Cache* parentInstruction){
 }
 
 void
-L2Cache::find_in_cache(ull addr, int category){
+L2Cache::find_in_cache(ull addr, int category, ull pc){
 	this->clock++;
 	ull idx = addr%num_sets;
 	for(int j=0;j<associativity;++j){
@@ -40,7 +40,7 @@ L2Cache::find_in_cache(ull addr, int category){
 		}
 	}
 	// Recording  a Miss
-	cout << this->id << " " << addr << " " << category << endl;
+	cout << pc << " " << this->id << " " << addr << " " << category << endl;
 	// this->child->find_in_cache(addr);
 	
 	// If cache has space left

@@ -19,7 +19,7 @@ L1Cache::set_child(L2Cache* child){
 }
 
 void
-L1Cache::find_in_cache(ull addr, int category){
+L1Cache::find_in_cache(ull addr, int category, ull pc){
 	this->clock++;
 	ull idx = addr%num_sets;
 	for(int j=0;j<this->associativity;++j){
@@ -37,7 +37,7 @@ L1Cache::find_in_cache(ull addr, int category){
 		}
 	}
 	//Miss
-	this->child->find_in_cache(addr, category);
+	this->child->find_in_cache(addr, category, pc);
 
 	// If cache has space left
 	for(int j=0;j<this->associativity;++j){

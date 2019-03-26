@@ -17,8 +17,11 @@ data_file = data_folder + 'LLCtrace_' + args.p + '_sharefile.out'
 
 data = pd.read_csv(data_file, sep=' ')
 
-
-n_sharers = int(data['n_sharers'].max())
+try:
+	n_sharers = int(data['n_sharers'].max())
+except:
+	n_sharers = 1
+	print("analysis2", args.size, args.p)
 
 for i in range(2, n_sharers+1):
 	di = data.loc[data['n_sharers'] == i]
@@ -26,7 +29,7 @@ for i in range(2, n_sharers+1):
 	rec1=[]
 	rec2=[]
 	for j in range(2,i+1):
-		t = di.loc[di['sharers_idx'] ==j ]
+		t = di.loc[di['sharers_idx'] ==j-1 ]
 		if(args.property == 'mean'):
 			rec0 += list(t.loc[t['category']==0, ['distance']].mean())
 			rec1 += list(t.loc[t['category']==1, ['distance']].mean())
@@ -61,7 +64,7 @@ for i in range(2, n_sharers+1):
 	plt.ylabel('avg. distance to show up')
 	plt.title('avg. distance to show u per sharer for n_sharers = {}'.format(i))
 	plt.xticks(index + bar_width, xticks)
-	plt.legend()
+	plt.legend(loc='upper right')
 	plt.savefig( plot_folder + 'share_distance_{}_{}_{}.png'.format(args.p, i, args.property))
 	plt.tight_layout()
 	# plt.show()

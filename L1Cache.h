@@ -24,7 +24,7 @@ public:
 
 	void set_child(L2Cache* child);
 
-	void find_in_cache(ull addr, int category);
+	void find_in_cache(ull addr, int category, ull pc);
 
 	void invalidate(ull addr);
 };

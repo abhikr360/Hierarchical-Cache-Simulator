@@ -91,7 +91,8 @@ int main (int argc, char **argv)
    ull pagenum;
    ull temp_hit_count;
    double prob[LLC_ASSOC], sum;
-
+   ull pc;
+   
    if (argc != 5) {
       printf("Need 5 arguments: input file,LOG_PAGE_SIZE,n_counters,D. Aborting...\n");
       exit (1);
@@ -116,7 +117,7 @@ int main (int argc, char **argv)
    assert(fp_in != NULL);
 
    while (!feof(fp_in)) {
-      fscanf(fp_in, "%d %llu %d", &tid, &block_addr, &block_type);
+      fscanf(fp_in, "%llu %d %llu %d", &pc, &tid, &block_addr, &block_type);
 
       LLCsetid = block_addr % LLC_NUMSET;
       pagenum = block_addr >> LOG_PAGE_SIZE;

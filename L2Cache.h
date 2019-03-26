@@ -26,7 +26,7 @@ public:
 	~L2Cache();
 
 
-	void find_in_cache(ull addr, int category);
+	void find_in_cache(ull addr, int category, ull pc);
 	void set_parent(L1Cache* parentData, L1Cache* parentInstruction);
 };
 

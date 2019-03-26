@@ -12,17 +12,12 @@
 #define LLC_ASSOC 16
 
 
-// #define LOG_PAGE_SIZE 20
-// #define n_counters 22
-// #define D 10000
-
-
-
+const double EPSILON = 0.001;
 typedef unsigned long long ull;
 
 //Structure to hold the counts used in probabilistic eviction scheme
 typedef struct countTableEntry_s{
-   ull pagenum;
+   ull pc;
    ull count[50];
    struct countTableEntry_s* next;
 } countTableEntry_s;
@@ -36,7 +31,6 @@ typedef struct {
 } CacheTag;
 
 
-const double EPSILON = 0.001;
 
 CacheTag** create_cache (int numset, int assoc) {
    /* Creates a cache with (number of sets = numset) and (associativity = assoc)*/
@@ -61,7 +55,7 @@ countTableEntry_s* create_count_table(int size){
    int j;
 
    for (j=0; j<size; j++) {
-      ct[j].pagenum=INVALID_TAG;
+      ct[j].pc=INVALID_TAG;
       ct[j].next = NULL;
    }
    return ct;
@@ -69,10 +63,6 @@ countTableEntry_s* create_count_table(int size){
 
 int main (int argc, char **argv)
 {  
-   if (argc != 5) {
-      printf("Need 5 arguments: input file,LOG_PAGE_SIZE,n_counters,D. Aborting...\n");
-      exit (1);
-   }
    const int LOG_PAGE_SIZE = atoi(argv[2]);
    const int n_counters = atoi(argv[3]);
    const int D = atoi(argv[4]);
@@ -89,12 +79,14 @@ int main (int argc, char **argv)
    CacheTag** LLCcache;
    countTableEntry_s* ct, *ctptr, *prevctptr;
    int block_type;
-   ull pagenum;
+   ull pc;
    ull temp_hit_count;
    double prob[LLC_ASSOC], sum;
-   ull pc;
 
-   
+   if (argc != 5) {
+      printf("Need 5 arguments: input file,LOG_PAGE_SIZE,n_counters,D. Aborting...\n");
+      exit (1);
+   }
 
    LLCcache = (CacheTag**)create_cache(LLC_NUMSET, LLC_ASSOC);
    ct = (countTableEntry_s*)create_count_table(SIZE);
@@ -112,15 +104,15 @@ int main (int argc, char **argv)
    sprintf(input_name, "%s", argv[1]);
    fp_in = fopen(input_name, "r");
    assert(fp_in != NULL);
-   int temp=0;
+
    while (!feof(fp_in)) {
       fscanf(fp_in, "%llu %d %llu %d", &pc, &tid, &block_addr, &block_type);
-      printf("%d\n", temp++);
-      LLCsetid = block_addr % LLC_NUMSET;
-      pagenum = block_addr >> LOG_PAGE_SIZE;
-      hash_index = pagenum % SIZE;
 
-      // printf("A\n");
+      LLCsetid = block_addr % LLC_NUMSET;
+      pc = pc >> LOG_PAGE_SIZE;
+      hash_index = pc % SIZE;
+
+      printf("%lld\n", pc);
       /* LLC cache lookup */
       for (llcway=0; llcway<LLC_ASSOC; llcway++) {
          if (LLCcache[LLCsetid][llcway].tag == block_addr) {
@@ -140,7 +132,7 @@ int main (int argc, char **argv)
       if (llcway==LLC_ASSOC) {
          /* LLC cache miss */
          num_misses++;
-         // printf("B\n");
+
          /* find victim block and replace it with current block */
         
          /* check if there is invalid way */
@@ -155,7 +147,7 @@ int main (int argc, char **argv)
             /* no invalid way*/
 
 
-            // printf("C\nc");
+
             if(uniqueId[LLCsetid]>D){
             /* Probabilistic Policy*/
                sum=0;
@@ -174,7 +166,6 @@ int main (int argc, char **argv)
                   }
 
                   sum+=prob[llcway];
-                  printf("%lf\n", sum);
                }
 
                for(llcway=0;llcway<LLC_ASSOC;++llcway){// Normalizing the probability values
@@ -215,8 +206,8 @@ int main (int argc, char **argv)
          
 
          ctptr = &ct[hash_index];
-         if(ctptr->pagenum == INVALID_TAG){ // No page at this idx
-            ctptr->pagenum = pagenum;
+         if(ctptr->pc == INVALID_TAG){ // No page at this idx
+            ctptr->pc = pc;
             ctptr->next=NULL;
             for(j=0;j<n_counters;++j){
                ctptr->count[j]=0;
@@ -225,7 +216,7 @@ int main (int argc, char **argv)
          else{  // A page at this idx already exists
             prevctptr = NULL;
             while(ctptr != NULL){
-               if(ctptr->pagenum == pagenum ){
+               if(ctptr->pc == pc ){
                   break;
                }
                prevctptr = ctptr;
@@ -234,7 +225,7 @@ int main (int argc, char **argv)
             if(ctptr == NULL){// This is the first block for this page
                prevctptr->next = (countTableEntry_s*)malloc(sizeof(countTableEntry_s));
                ctptr = prevctptr->next;
-               ctptr->pagenum=pagenum;
+               ctptr->pc=pc;
                ctptr->next=NULL;
                for(j=0;j<n_counters;++j){
                   ctptr->count[j]=0;
@@ -259,44 +250,6 @@ int main (int argc, char **argv)
 
    printf("Miss rate: %lf\n", (num_misses*1.0)/tot);
 
-
-   double avg, sum1;
-   for(i=0;i<n_counters;++i){
-      tot=0;
-      temp_hit_count=0;
-      for(j=0;j<SIZE;++j){
-         ctptr = &ct[j];
-         while(ctptr != NULL && ctptr->pagenum != INVALID_TAG){
-            tot += ctptr->count[i];
-            ctptr=ctptr->next;
-            temp_hit_count++;
-         }
-      }
-      
-      avg = tot;
-      avg = (1.0*tot)/temp_hit_count;
-      sum1=0;
-      for(j=0;j<SIZE;++j){
-         ctptr = &ct[j];
-         while(ctptr != NULL){
-            sum1 += ((double)ctptr->count[i] - avg)*((double)ctptr->count[i] - avg);
-            ctptr=ctptr->next;
-         }
-      }
-      
-      printf("Avg count: %lf StdDev: %lf\n", avg, sum1/(double)temp_hit_count);
-   }
-   printf("Num pages: %lld\n", temp_hit_count);
-   tot=0;
-   for(i=0;i<LLC_NUMSET;++i){
-      tot+= uniqueId[i];
-   }
-   avg = (double)tot/(double)LLC_NUMSET;
-   sum1=0;
-   for(i=0;i<LLC_NUMSET;++i){
-      sum1 += ((double)uniqueId[i] - avg)*((double)uniqueId[i]-avg);
-   }
-   printf("Avg access: %lf StdDev: %lf\n", avg, sum1/(double)LLC_NUMSET);
    printf("-------------------------------------------------------------------\n");
    return 0;
 }
