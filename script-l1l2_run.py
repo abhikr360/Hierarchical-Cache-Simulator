@@ -8,11 +8,11 @@ args = parser.parse_args()
 
 progs = [
 	# 'blackscholes',
-	'bodytrack',
-	'canneal',
-	'facesim',
-	'ferret',
-	'fluidanimate',
+	# 'bodytrack',
+	# 'canneal',
+	# 'facesim',
+	# 'ferret',
+	# 'fluidanimate',
 	'freqmine',
 	# 'raytrace',
 	'streamcluster',

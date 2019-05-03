@@ -255,6 +255,6 @@ int main (int argc, char **argv)
    for (i=0; i<LLC_NUMSET; i++) {
       tot+=uniqueId[i];
    }
-   printf("Miss rate: %lf\n", (num_misses*1.0)/tot);
+   printf("Miss rate %s: %lf\n", input_name,(num_misses*1.0)/tot);
    return 0;
 }

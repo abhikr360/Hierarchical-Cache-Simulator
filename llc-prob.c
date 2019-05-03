@@ -39,7 +39,9 @@ typedef struct {
 const double EPSILON = 0.001;
 
 CacheTag** create_cache (int numset, int assoc) {
-   /* Creates a cache with (number of sets = numset) and (associativity = assoc)*/
+   /*
+   * Creates a cache with (number of sets = numset) and (associativity = assoc)
+   */
    int i, j;
    CacheTag ** cache = (CacheTag**)malloc(numset*sizeof(CacheTag*));
    assert(cache != NULL);

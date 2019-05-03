@@ -72,6 +72,12 @@ countTableEntry_s* create_count_table(int size){
 
 int main (int argc, char **argv)
 {  
+
+   if (argc != 5) {
+      printf("Need 5 arguments: input file,LOG_PAGE_SIZE,n_counters,D. Aborting...\n");
+      exit (1);
+   }
+
    const int LOG_PAGE_SIZE = atoi(argv[2]);
    const int n_counters = atoi(argv[3]);
    const int D = atoi(argv[4]);
@@ -93,10 +99,7 @@ int main (int argc, char **argv)
    double prob[LLC_ASSOC], sum;
    ull pc;
    
-   if (argc != 5) {
-      printf("Need 5 arguments: input file,LOG_PAGE_SIZE,n_counters,D. Aborting...\n");
-      exit (1);
-   }
+   
 
    LLCcache = (CacheTag**)create_cache(LLC_NUMSET, LLC_ASSOC);
    ct = (countTableEntry_s*)create_count_table(SIZE);
@@ -107,7 +110,7 @@ int main (int argc, char **argv)
       uniqueId[i] = 0;
    }
 
-   printf("Starting simulation...\n"); fflush(stdout);
+   // printf("Starting simulation...\n"); fflush(stdout);
 
    // Simulate
    ull num_misses=0;
@@ -120,7 +123,7 @@ int main (int argc, char **argv)
       fscanf(fp_in, "%llu %d %llu %d", &pc, &tid, &block_addr, &block_type);
 
       LLCsetid = block_addr % LLC_NUMSET;
-      pagenum = block_addr >> LOG_PAGE_SIZE;
+      pagenum = pc >> LOG_PAGE_SIZE;
       hash_index = pagenum % SIZE;
 
       /* LLC cache lookup */
@@ -310,16 +313,16 @@ int main (int argc, char **argv)
    }
    fclose(fp_in);
 
-   printf("Done Simulating!\n");
+   // printf("Done Simulating!\n");
    ull tot=0;
    for (j=0; j<LLC_NUMSET; j++) {
       tot+=uniqueId[j];
    }
    
 
-   printf("Miss rate: %lf\n", (num_misses*1.0)/tot);
+   printf("Miss rate %s %lf\n", input_name,(num_misses*1.0)/tot);
 
-
+/*/*
    double avg, sum1;
    for(i=0;i<n_counters;++i){
       tot=0;
@@ -345,7 +348,7 @@ int main (int argc, char **argv)
 
       printf("Avg count: %lf StdDev: %lf\n", avg, sum1/(double)temp_hit_count);
    }
-   printf("Sharing Counts\n");
+   // printf("Sharing Counts\n");
    for(i=0;i<n_counters;++i){
       tot=0;
       temp_hit_count=0;
@@ -368,9 +371,9 @@ int main (int argc, char **argv)
          }
       }
 
-      printf("Avg count: %lf StdDev: %lf\n", avg, sum1/(double)temp_hit_count);
+      // printf("Avg count: %lf StdDev: %lf\n", avg, sum1/(double)temp_hit_count);
    }
-   printf("Num pages: %lld\n", temp_hit_count);
+   // printf("Num pages: %lld\n", temp_hit_count);
    tot=0;
    for(i=0;i<LLC_NUMSET;++i){
       tot+= uniqueId[i];
@@ -379,8 +382,10 @@ int main (int argc, char **argv)
    sum1=0;
    for(i=0;i<LLC_NUMSET;++i){
       sum1 += ((double)uniqueId[i] - avg)*((double)uniqueId[i]-avg);
-   }
-   printf("Avg access: %lf StdDev: %lf\n", avg, sum1/(double)LLC_NUMSET);
-   printf("-----------------------------------------------------------------\n");
+   }*/
+
+   
+  // printf("Avg access: %lf StdDev: %lf\n", avg, sum1/(double)LLC_NUMSET);
+   // printf("-----------------------------------------------------------------\n");
    return 0;
 }

@@ -67,7 +67,7 @@ int main (int argc, char **argv)
    const int n_counters = atoi(argv[3]);
    const int D = atoi(argv[4]);
    assert(n_counters<50);
-   printf("LOG_PAGE_SIZE: %d n_counters %d D %d\n", LOG_PAGE_SIZE, n_counters, D);
+   printf("LOG_PAGE_SIZE: %d n_counters %d D %d ", LOG_PAGE_SIZE, n_counters, D);
    
 
    int  i, j, LLCsetid, maxindex, tid;
@@ -96,7 +96,7 @@ int main (int argc, char **argv)
       uniqueId[i] = 0;
    }
 
-   printf("Starting simulation...\n"); fflush(stdout);
+   // printf("Starting simulation...\n"); fflush(stdout);
 
    // Simulate
    ull num_misses=0;
@@ -112,7 +112,7 @@ int main (int argc, char **argv)
       pc = pc >> LOG_PAGE_SIZE;
       hash_index = pc % SIZE;
 
-      printf("%lld\n", pc);
+      // printf("%lld\n", pc);
       /* LLC cache lookup */
       for (llcway=0; llcway<LLC_ASSOC; llcway++) {
          if (LLCcache[LLCsetid][llcway].tag == block_addr) {
@@ -126,11 +126,13 @@ int main (int argc, char **argv)
                ctptr->count[temp_hit_count]++;
 
             LLCcache[LLCsetid][llcway].lru = uniqueId[LLCsetid];
+            // printf("Hit\n");
             break;
          }
       }
       if (llcway==LLC_ASSOC) {
          /* LLC cache miss */
+         // printf("Miss\n");
          num_misses++;
 
          /* find victim block and replace it with current block */
@@ -241,15 +243,14 @@ int main (int argc, char **argv)
    }
    fclose(fp_in);
 
-   printf("Done Simulating!\n");
+   // printf("Done Simulating!\n");
    ull tot=0;
    for (j=0; j<LLC_NUMSET; j++) {
       tot+=uniqueId[j];
    }
    
 
-   printf("Miss rate: %lf\n", (num_misses*1.0)/tot);
+   printf("Miss rate: %s %lf\n", input_name,(num_misses*1.0)/tot);
 
-   printf("-------------------------------------------------------------------\n");
    return 0;
 }
